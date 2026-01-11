@@ -1,0 +1,12 @@
+streamlit
+google-generativeai
+langchain-google-genai
+langchain-community
+faiss-cpu
+youtube-transcript-api
+yt-dlp
+pypdf
+python-docx
+fpdf
+beautifulsoup4
+requests
