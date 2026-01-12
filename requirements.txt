@@ -10,3 +10,5 @@ python-docx
 fpdf
 beautifulsoup4
 requests
+gspread
+oauth2client
