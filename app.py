@@ -169,7 +169,7 @@ def procesar_youtube(url, api_key):
                 fname = f"{info['id']}.mp3"
             genai.configure(api_key=api_key)
             myfile = genai.upload_file(fname)
-            while myfile.state.name == "PROCESSING": time.sleep(2); myfile = genai.get_file(myfile.name)
+            while myfile.state.name == "PROCESSING": time.sleep(10); myfile = genai.get_file(myfile.name)
             model = genai.GenerativeModel(MODELO_ACTUAL)
             res = model.generate_content([myfile, "Transcribe el audio."])
             if os.path.exists(fname): os.remove(fname)
@@ -381,3 +381,4 @@ if 'res' in st.session_state:
     except: pass
     try: c3.download_button("PowerPoint", crear_pptx(st.session_state['res'], st.session_state['tecnicas_usadas'], st.session_state['origen_dato']), "Slides.pptx")
     except: pass
+
