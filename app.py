@@ -4,6 +4,8 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 import pypdf
 from docx import Document
 from fpdf import FPDF
+from pptx import Presentation # Para PowerPoint
+from pptx.util import Inches, Pt
 from io import BytesIO
 import requests
 from bs4 import BeautifulSoup
@@ -12,12 +14,14 @@ import yt_dlp
 import os
 import time
 import datetime
+# Agente de Búsqueda
+from langchain_community.tools import DuckDuckGoSearchRun
 
 # --- CONFIGURACIÓN DE PÁGINA ---
-st.set_page_config(page_title="StratIntel V11 (Global)", page_icon="🛡️", layout="wide")
+st.set_page_config(page_title="StratIntel V12 (Commander)", page_icon="🎖️", layout="wide")
 
 # ==========================================
-# 🔐 SISTEMA DE LOGIN (TUYO)
+# 🔐 SISTEMA DE LOGIN
 # ==========================================
 def check_password():
     """Retorna `True` si el usuario tiene la contraseña correcta."""
@@ -32,7 +36,7 @@ def check_password():
     if st.session_state.get("password_correct", False):
         return True
 
-    st.markdown("## 🛡️ StratIntel: Acceso Restringido")
+    st.markdown("## 🎖️ StratIntel: Acceso Restringido")
     st.text_input("Usuario", key="username")
     st.text_input("Contraseña", type="password", on_change=password_entered, key="password")
     
@@ -56,58 +60,49 @@ MODELO_ACTUAL = "gemini-3-flash-preview"
 # 🧠 BASE DE DATOS DE CONOCIMIENTO
 # ==========================================
 DB_CONOCIMIENTO = {
-    "✨ RECOMENDACIÓN AUTOMÁTICA (IA)": {
-        "desc": "La IA analiza todos los documentos y decide la mejor estrategia.",
-        "preguntas": ["Identifica los hallazgos estratégicos más críticos y sus implicaciones.", "Realiza una evaluación integral de riesgos y oportunidades.", "Genera un Resumen Ejecutivo (BLUF) para la toma de decisiones.", "¿Cuáles son las anomalías o patrones ocultos más relevantes?"]
+    "✨ RECOMENDACIÓN AUTOMÁTICA": {
+        "desc": "La IA decide la mejor estrategia.",
+        "preguntas": ["Hallazgos críticos.", "Evaluación de riesgos.", "Resumen Ejecutivo (BLUF).", "Patrones ocultos."]
     },
-    "--- NUEVOS ENFOQUES TEÓRICOS ---": { "desc": "", "preguntas": [] },
     "Niveles de Análisis (Barry Buzan)": {
-        "desc": "Seguridad Multisectorial: Militar, Política, Económica, Societal y Ambiental.",
-        "preguntas": [
-            "Nivel Sistémico: ¿Cómo influye la anarquía internacional o la polaridad en el conflicto?",
-            "Nivel Estatal: ¿Qué presiones burocráticas o nacionales limitan al Estado?",
-            "Nivel Individual: ¿El perfil psicológico de los líderes altera la toma de decisiones?",
-            "Seguridad Societal: ¿Está amenazada la identidad colectiva (religión, etnia, cultura)?"
-        ]
+        "desc": "Seguridad Multisectorial (Militar, Política, Económica, Societal, Ambiental).",
+        "preguntas": ["Nivel Sistémico (Polaridad).", "Nivel Estatal (Presiones internas).", "Nivel Individual (Líderes).", "Seguridad Societal (Identidad)."]
     },
-    "Evolución de la Cooperación (Robert Axelrod)": {
-        "desc": "Teoría de Juegos: Dilema del Prisionero y Tit-for-Tat.",
-        "preguntas": [
-            "Sombra del Futuro: ¿Tienen los actores expectativas de interactuar nuevamente? (Clave para cooperar).",
-            "Reciprocidad: ¿Está el actor respondiendo proporcionalmente (Tit-for-Tat) o escalando?",
-            "Detección de Trampas: ¿Qué mecanismos de verificación existen para asegurar el cumplimiento?",
-            "Estructura de Pagos: ¿Cómo alterar los incentivos para que cooperar sea más rentable que traicionar?"
-        ]
+    "Evolución de la Cooperación (Axelrod)": {
+        "desc": "Teoría de Juegos.",
+        "preguntas": ["Sombra del Futuro.", "Reciprocidad (Tit-for-Tat).", "Detección de Trampas.", "Estructura de Pagos."]
     },
-    "--- TÉCNICAS DIAGNÓSTICAS ---": { "desc": "", "preguntas": [] },
-    "Análisis FODA (SWOT) Estratégico": {
-        "desc": "Fortalezas, Oportunidades, Debilidades y Amenazas (Enfoque Intel).",
-        "preguntas": ["Identifica las vulnerabilidades internas críticas (Debilidades) explotables.", "¿Qué amenazas externas inminentes ponen en riesgo la estabilidad?", "Estrategia 'Maxi-Mini': Usar fortalezas para minimizar amenazas."]
+    "Análisis FODA (SWOT) Intel": {
+        "desc": "Enfoque de Inteligencia.",
+        "preguntas": ["Vulnerabilidades (Debilidades).", "Amenazas inminentes.", "Estrategia Maxi-Mini.", "Fortalezas vs Oportunidades."]
     },
     "Análisis Geopolítico (PMESII-PT)": {
-        "desc": "Político, Militar, Económico, Social, Infraestructura, Info.",
-        "preguntas": ["Analiza la interacción de variables Políticas y Militares.", "Evalúa la vulnerabilidad de la Infraestructura crítica.", "Desglosa la situación utilizando las 8 variables PMESII-PT."]
+        "desc": "Variables del entorno operativo.",
+        "preguntas": ["Político-Militar.", "Infraestructura/Social.", "Desglose PMESII-PT."]
     },
-    "Análisis DIME (Instrumentos de Poder)": {
+    "Análisis DIME (Poder Nacional)": {
         "desc": "Diplomático, Informacional, Militar, Económico.",
-        "preguntas": ["Evalúa la proyección de poder Económico.", "¿Cómo se usan los canales Diplomáticos para aislar al adversario?", "Analiza la campaña de Información (Guerra Psicológica)."]
+        "preguntas": ["Poder Económico.", "Aislamiento Diplomático.", "Guerra de Info.", "Disuasión Militar."]
     },
-    "--- CONTRASTE Y PROSPECTIVA ---": { "desc": "", "preguntas": [] },
-    "Análisis de Hipótesis en Competencia (ACH)": {
-        "desc": "Evaluar múltiples explicaciones para reducir sesgos.",
-        "preguntas": ["Genera 4 hipótesis y puntúa la evidencia.", "¿Qué información faltante (Intelligence Gap) confirmaría las Hipótesis?", "Evalúa la posibilidad de 'Decepción' (engaño)."]
+    "Análisis de Hipótesis (ACH)": {
+        "desc": "Validación de Hipótesis.",
+        "preguntas": ["Matriz de Hipótesis.", "Evidencia diagnóstica.", "Intelligence Gaps.", "Decepción."]
     },
     "Abogado del Diablo": {
-        "desc": "Cuestionar la premisa dominante.",
-        "preguntas": ["Desafía la conclusión obvia: ¿Por qué podría ser falsa?", "Defiende la postura del actor 'irracional' como si fuera lógica."]
+        "desc": "Pensamiento crítico.",
+        "preguntas": ["Desafío a la conclusión.", "Defensa del actor 'irracional'."]
     },
     "Escenarios Prospectivos": {
         "desc": "Cono de Plausibilidad.",
-        "preguntas": ["Desarrolla 4 escenarios: Mejor, Peor, Wild Card e Híbrido.", "Identifica los 'Drivers' (motores de cambio) clave."]
+        "preguntas": ["4 Escenarios (Mejor/Peor/Híbrido/Wild).", "Drivers clave."]
     },
     "Centro de Gravedad (COG)": {
-        "desc": "Fuente de poder (Clausewitz).",
-        "preguntas": ["Identifica el COG Estratégico y sus Capacidades Críticas.", "Define las Vulnerabilidades Críticas para anular el COG."]
+        "desc": "Clausewitz.",
+        "preguntas": ["COG Estratégico.", "Capacidades Críticas.", "Vulnerabilidades Críticas."]
+    },
+    "Matriz CARVER": {
+        "desc": "Selección de Objetivos.",
+        "preguntas": ["Criticidad/Vulnerabilidad.", "Efecto sistémico.", "Recuperabilidad."]
     }
 }
 
@@ -118,15 +113,24 @@ if 'origen_dato' not in st.session_state: st.session_state['origen_dato'] = "Nin
 
 # --- FUNCIONES DE PROCESAMIENTO ---
 
+def buscar_en_web(query):
+    """Agente de búsqueda usando DuckDuckGo (Gratis)"""
+    try:
+        search = DuckDuckGoSearchRun()
+        resultados = search.run(query)
+        return resultados
+    except Exception as e:
+        return f"Error en búsqueda web: {e}"
+
 def procesar_archivos_pdf(archivos):
     texto_total = ""
     nombres = []
     for archivo in archivos:
         reader = pypdf.PdfReader(archivo)
         texto_pdf = "".join([p.extract_text() for p in reader.pages])
-        texto_total += f"\n--- INICIO ARCHIVO: {archivo.name} ---\n{texto_pdf}\n--- FIN ARCHIVO ---\n"
+        texto_total += f"\n--- ARCHIVO: {archivo.name} ---\n{texto_pdf}\n"
         nombres.append(archivo.name)
-    return texto_total, ", ".join(nombres)
+    return texto_total, str(nombres)
 
 def procesar_archivos_docx(archivos):
     texto_total = ""
@@ -134,96 +138,123 @@ def procesar_archivos_docx(archivos):
     for archivo in archivos:
         doc = Document(archivo)
         texto_doc = "\n".join([para.text for para in doc.paragraphs])
-        texto_total += f"\n--- INICIO ARCHIVO: {archivo.name} ---\n{texto_doc}\n--- FIN ARCHIVO ---\n"
+        texto_total += f"\n--- ARCHIVO: {archivo.name} ---\n{texto_doc}\n"
         nombres.append(archivo.name)
-    return texto_total, ", ".join(nombres)
+    return texto_total, str(nombres)
 
 def obtener_texto_web(url):
     try:
-        headers = {'User-Agent': 'Mozilla/5.0'}
-        response = requests.get(url, headers=headers, timeout=15)
-        soup = BeautifulSoup(response.content, 'html.parser')
-        for s in soup(["script", "style"]): s.extract()
-        return soup.get_text(separator='\n')
+        h = {'User-Agent': 'Mozilla/5.0'}
+        r = requests.get(url, headers=h, timeout=15)
+        s = BeautifulSoup(r.content, 'html.parser')
+        for script in s(["script", "style"]): script.extract()
+        return s.get_text(separator='\n')
     except Exception as e: return f"Error: {e}"
 
 def procesar_youtube(url, api_key):
-    video_id = url.split("v=")[-1].split("&")[0] if "v=" in url else url.split("/")[-1]
+    vid = url.split("v=")[-1].split("&")[0] if "v=" in url else url.split("/")[-1]
     try:
-        transcript = YouTubeTranscriptApi.get_transcript(video_id, languages=['es', 'en'])
-        return " ".join([i['text'] for i in transcript]), "Subtítulos"
+        t = YouTubeTranscriptApi.get_transcript(vid, languages=['es', 'en'])
+        return " ".join([i['text'] for i in t]), "Subtítulos"
     except:
-        st.info(f"Usando {MODELO_ACTUAL} para escuchar el video (Multimodal)...")
-        ydl_opts = {'format': 'bestaudio/best', 'outtmpl': '%(id)s.%(ext)s', 'postprocessors': [{'key': 'FFmpegExtractAudio','preferredcodec': 'mp3'}], 'quiet': True}
+        st.info(f"Modo Multimodal (Audio)...")
+        opts = {'format': 'bestaudio/best', 'outtmpl': '%(id)s.%(ext)s', 'postprocessors': [{'key': 'FFmpegExtractAudio','preferredcodec': 'mp3'}], 'quiet': True}
         try:
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            with yt_dlp.YoutubeDL(opts) as ydl:
                 info = ydl.extract_info(url, download=True)
-                filename = f"{info['id']}.mp3"
+                fname = f"{info['id']}.mp3"
             genai.configure(api_key=api_key)
-            myfile = genai.upload_file(filename)
+            myfile = genai.upload_file(fname)
             while myfile.state.name == "PROCESSING": time.sleep(2); myfile = genai.get_file(myfile.name)
             model = genai.GenerativeModel(MODELO_ACTUAL)
-            res = model.generate_content([myfile, "Transcribe el audio."])
-            if os.path.exists(filename): os.remove(filename)
+            res = model.generate_content([myfile, "Transcribe audio."])
+            if os.path.exists(fname): os.remove(fname)
             myfile.delete()
             return res.text, "Audio IA"
         except Exception as e: return f"Error: {e}", "Error"
 
-# --- FUNCIONES DE REPORTE (BLINDADAS) ---
+# --- FUNCIONES DE REPORTE (PPTX, PDF, DOCX) ---
 
-def limpiar_texto_pdf(texto):
-    if not texto: return ""
-    reemplazos = {"✨": "", "🚀": "", "⚠️": "[!]", "✅": "[OK]", "🛡️": "", "🔒": ""}
-    for k, v in reemplazos.items(): texto = texto.replace(k, v)
-    return texto.encode('latin-1', 'replace').decode('latin-1')
+def limpiar_texto(t):
+    if not t: return ""
+    reps = {"✨": "", "🚀": "", "⚠️": "[!]", "✅": "[OK]", "🛡️": "", "🔒": "", "🎖️": ""}
+    for k,v in reps.items(): t = t.replace(k,v)
+    return t.encode('latin-1', 'replace').decode('latin-1')
+
+def crear_pptx(texto, tecnicas, fuente):
+    prs = Presentation()
+    
+    # Diapositiva de Título
+    slide_layout = prs.slide_layouts[0] # Title Slide
+    slide = prs.slides.add_slide(slide_layout)
+    title = slide.shapes.title
+    subtitle = slide.placeholders[1]
+    title.text = "Informe de Inteligencia StratIntel V12"
+    subtitle.text = f"Fuente: {fuente}\nGenerado por IA"
+
+    # Procesar texto para diapositivas
+    # Dividimos por técnica (asumiendo que usamos encabezados ##)
+    secciones = texto.split("## 📌")
+    
+    for seccion in secciones:
+        if not seccion.strip(): continue
+        
+        lineas = seccion.strip().split("\n")
+        titulo_seccion = lineas[0].strip() # El nombre de la técnica
+        contenido = "\n".join(lineas[1:])[:1000] # Limitamos texto por slide
+        
+        # Crear Slide
+        layout = prs.slide_layouts[1] # Title and Content
+        slide = prs.slides.add_slide(layout)
+        
+        # Título
+        title = slide.shapes.title
+        title.text = titulo_seccion
+        
+        # Contenido (Bullet points simples)
+        body = slide.shapes.placeholders[1]
+        tf = body.text_frame
+        tf.text = contenido
+
+    buffer = BytesIO()
+    prs.save(buffer)
+    buffer.seek(0)
+    return buffer
 
 class PDFReport(FPDF):
     def header(self):
         self.set_font('Arial', 'B', 12)
-        self.cell(0, 10, 'Informe StratIntel V10', 0, 1, 'C')
+        self.cell(0, 10, 'StratIntel Report V12', 0, 1, 'C')
         self.ln(5)
     def footer(self):
-        self.set_y(-25) # Subimos un poco para que quepa el texto
+        self.set_y(-15)
         self.set_font('Arial', 'I', 7)
-        legal_text = (
-            "AVISO LEGAL: Este informe ha sido generado mediante sistemas de Inteligencia Artificial (IA) "
-            "con fines de análisis preliminar. La información contenida puede no ser exacta o completa. "
-            "El usuario asume toda la responsabilidad por el uso de estos datos para la toma de decisiones. "
-            "RESERVADO - PROPIEDAD DEL USUARIO."
-        )
-        self.multi_cell(0, 3, legal_text, align='C')
+        self.cell(0, 10, 'Generado por IA. Uso Confidencial.', 0, 0, 'C')
 
-def crear_pdf(texto, tecnica, fuente):
+def crear_pdf(texto, tecnicas, fuente):
     pdf = PDFReport()
     pdf.add_page()
     pdf.set_font("Arial", "B", 10)
-    pdf.multi_cell(0, 5, limpiar_texto_pdf(f"Fuente(s): {fuente}"))
-    pdf.ln(2)
-    pdf.cell(0, 10, limpiar_texto_pdf(f"Metodología: {tecnica}"), ln=True)
+    pdf.multi_cell(0, 5, limpiar_texto(f"Fuente: {fuente}\nTécnicas: {tecnicas}"))
     pdf.ln(5)
     pdf.set_font("Arial", "", 10)
-    pdf.multi_cell(0, 5, limpiar_texto_pdf(texto))
+    pdf.multi_cell(0, 5, limpiar_texto(texto))
     return pdf.output(dest='S').encode('latin-1', 'replace')
 
-def crear_word(texto, tecnica, fuente):
+def crear_word(texto, tecnicas, fuente):
     doc = Document()
-    doc.add_heading('Informe StratIntel V10', 0)
+    doc.add_heading('StratIntel Intelligence Report V12', 0)
     doc.add_paragraph(f"Fuente: {fuente}").bold = True
-    doc.add_paragraph(f"Metodología: {tecnica}").bold = True
-    doc.add_heading('Análisis', level=1)
-    for linea in texto.split('\n'):
-        if linea.startswith('#'): doc.add_heading(linea.replace('#', '').strip(), level=2)
-        else: doc.add_paragraph(linea)
+    doc.add_paragraph(f"Técnicas Aplicadas: {tecnicas}").bold = True
+    for l in texto.split('\n'):
+        if l.startswith('#'): doc.add_heading(l.replace('#','').strip(), level=2)
+        else: doc.add_paragraph(l)
     
-    # DISCLAIMER ROBUSTO (TU VERSIÓN)
     aviso = doc.add_paragraph()
     aviso_runner = aviso.add_run(
         "\n\n------------------------------------------------------------\n"
-        "AVISO DE RESPONSABILIDAD:\n"
-        "Este documento fue generado asistido por Inteligencia Artificial Avanzada. "
-        "El análisis presentado se basa en los datos suministrados y patrones probabilísticos. "
-        "No constituye asesoramiento legal, financiero ni militar vinculante. "
-        "El operador humano debe verificar los hallazgos críticos antes de ejecutar acciones."
+        "AVISO DE RESPONSABILIDAD: Documento generado por IA. "
+        "Verificar hallazgos críticos."
     )
     aviso_runner.font.size = 8
     aviso_runner.italic = True
@@ -232,8 +263,8 @@ def crear_word(texto, tecnica, fuente):
     return b
 
 # --- INTERFAZ ---
-st.sidebar.title("🛡️ StratIntel V11")
-st.sidebar.caption("SaaS Edition | Multi-Target")
+st.sidebar.title("🎖️ StratIntel V12")
+st.sidebar.caption("Commander Edition | Multi-Select")
 st.sidebar.markdown("---")
 
 if API_KEY_FIJA:
@@ -245,14 +276,14 @@ else:
         k = st.sidebar.text_input("🔑 API KEY:", type="password")
         if k: st.session_state['api_key'] = k; genai.configure(api_key=k); st.rerun()
 
-# --- SELECTOR DE MODO (NUEVO) ---
-modo_operacion = st.sidebar.radio("Modo de Operación:", ["Análisis Específico", "☢️ EJECUCIÓN GLOBAL"])
-
-# Solo mostrar selector de técnica si NO estamos en modo Global
-tecnica = "MODO_GLOBAL"
-if modo_operacion == "Análisis Específico":
-    tecnica = st.sidebar.selectbox("Marco Metodológico:", list(DB_CONOCIMIENTO.keys()))
-    if DB_CONOCIMIENTO[tecnica]["desc"]: st.sidebar.info(DB_CONOCIMIENTO[tecnica]["desc"])
+# --- SELECTOR MULTI-TÉCNICA (NUEVO) ---
+st.sidebar.subheader("🎯 Configuración de Misión")
+tecnicas_seleccionadas = st.sidebar.multiselect(
+    "Selecciona Técnicas (Máx. 3):",
+    options=list(DB_CONOCIMIENTO.keys()),
+    max_selections=3,
+    help="Combina metodologías compatibles para un análisis coherente."
+)
 
 temp = st.sidebar.slider("Creatividad", 0.0, 1.0, 0.4)
 
@@ -260,173 +291,139 @@ if st.sidebar.button("🔒 Salir"):
     del st.session_state["password_correct"]
     st.rerun()
 
-st.title("🛡️ StratIntel | División de Análisis")
-st.markdown("**Sistema de Apoyo a la Decisión (DSS) v11.0**")
+st.title("🎖️ StratIntel | División de Análisis")
+st.markdown("**Sistema de Apoyo a la Decisión (DSS) v12.0**")
 
-# --- TABS CON CARGA MÚLTIPLE ---
+# --- CARGA ---
 t1, t2, t3, t4, t5 = st.tabs(["📂 Multi-PDF", "📝 Multi-DOCX", "🌐 Web", "📺 YouTube", "✍️ Manual"])
 
 with t1:
-    pdfs = st.file_uploader("Subir PDFs (Permite Múltiples)", type="pdf", accept_multiple_files=True)
-    if pdfs and st.button("Procesar Lote PDF"):
-        txt, nombres = procesar_archivos_pdf(pdfs)
+    pdfs = st.file_uploader("Subir PDFs", type="pdf", accept_multiple_files=True)
+    if pdfs and st.button("Procesar PDF"):
+        txt, n = procesar_archivos_pdf(pdfs)
         st.session_state['texto_analisis'] = txt
-        st.session_state['origen_dato'] = f"Lote PDF: {nombres}"
-        st.success(f"✅ Procesados {len(pdfs)} archivos.")
+        st.session_state['origen_dato'] = f"PDFs: {n}"
+        st.success(f"✅ {len(pdfs)} archivos.")
 
 with t2:
-    docs = st.file_uploader("Subir Words (Permite Múltiples)", type="docx", accept_multiple_files=True)
-    if docs and st.button("Procesar Lote DOCX"):
-        txt, nombres = procesar_archivos_docx(docs)
+    docs = st.file_uploader("Subir Words", type="docx", accept_multiple_files=True)
+    if docs and st.button("Procesar DOCX"):
+        txt, n = procesar_archivos_docx(docs)
         st.session_state['texto_analisis'] = txt
-        st.session_state['origen_dato'] = f"Lote DOCX: {nombres}"
-        st.success(f"✅ Procesados {len(docs)} archivos.")
+        st.session_state['origen_dato'] = f"DOCXs: {n}"
+        st.success(f"✅ {len(docs)} archivos.")
 
 with t3:
-    url = st.text_input("URL Noticia:")
-    if st.button("Extraer"):
-        st.session_state['texto_analisis'] = obtener_texto_web(url)
-        st.session_state['origen_dato'] = f"Web: {url}"
-        st.success("Web Cargada")
+    u = st.text_input("URL Noticia")
+    if st.button("Extraer"): st.session_state['texto_analisis'] = obtener_texto_web(u); st.session_state['origen_dato'] = f"Web: {u}"; st.success("Cargado")
 
 with t4:
-    yt = st.text_input("URL YouTube:")
-    st.caption("Si no tiene subs, descarga y escucha el audio.")
-    if st.button("Analizar Video"):
-        if not st.session_state['api_key']: st.error("Falta API Key")
-        else:
-            with st.spinner("Procesando..."):
-                txt, met = procesar_youtube(yt, st.session_state['api_key'])
-                if met != "Error":
-                    st.session_state['texto_analisis'] = txt
-                    st.session_state['origen_dato'] = f"YT: {yt}"
-                    st.success(f"Video ({met}) Cargado")
-                else: st.error(txt)
+    y = st.text_input("URL YouTube")
+    if st.button("Video"):
+        with st.spinner("Procesando..."):
+            txt, m = procesar_youtube(y, st.session_state['api_key'])
+            if m!="Error": st.session_state['texto_analisis']=txt; st.session_state['origen_dato']=f"YT: {y}"; st.success("Cargado")
+            else: st.error(txt)
 
 with t5:
-    man = st.text_area("Texto Manual")
-    if st.button("Fijar"):
-        st.session_state['texto_analisis'] = man
-        st.session_state['origen_dato'] = "Manual"
+    m = st.text_area("Manual")
+    if st.button("Fijar"): st.session_state['texto_analisis']=m; st.session_state['origen_dato']="Manual"; st.success("Cargado")
 
 st.markdown("---")
 if st.session_state['texto_analisis']:
     st.info(f"📂 Fuente Activa: **{st.session_state['origen_dato']}**")
-    with st.expander("Ver Datos Cargados"): st.write(st.session_state['texto_analisis'][:2000] + "...")
+    with st.expander("Ver Datos"): st.write(st.session_state['texto_analisis'][:1000] + "...")
 
-# --- ÁREA DE EJECUCIÓN (LÓGICA DUAL) ---
-st.header("Generación de Informe")
+# --- EJECUCIÓN V12 ---
+st.header("Generación de Inteligencia")
 
 if not st.session_state['api_key'] or not st.session_state['texto_analisis']:
-    st.warning("⚠️ Carga datos y verifica tu API Key para comenzar.")
+    st.warning("⚠️ Carga datos para comenzar.")
 else:
-    # ---------------------------------------------------------
-    # MODO 1: ANÁLISIS ESPECÍFICO (TU CÓDIGO ACTUAL)
-    # ---------------------------------------------------------
-    if modo_operacion == "Análisis Específico":
-        c1, c2 = st.columns([1, 2])
-        with c1:
-            pregs = DB_CONOCIMIENTO.get(tecnica, {}).get("preguntas", [])
-            mode = st.radio("Enfoque:", ["Personalizado", "AUTO: Responder TODO"] + pregs)
-        with c2:
-            pir = st.text_area("Requerimiento (PIR):", value="" if "AUTO" in mode or mode in pregs else "", height=150)
-            
-            if st.button("🚀 EJECUTAR ANÁLISIS PROFUNDO", type="primary", use_container_width=True):
-                try:
-                    genai.configure(api_key=st.session_state['api_key'])
-                    model = genai.GenerativeModel(MODELO_ACTUAL)
-                    ctx = st.session_state['texto_analisis']
-                    
-                    # TU PROMPT DE ESPECIALISTA
-                    instruccion_base = f"""
-                    ACTÚA COMO: Especialista en Derecho y Política Internacional y Analista de Inteligencia Estratégica Senior (Nivel Gubernamental).
-                    TAREA: Generar un informe de inteligencia exhaustivo y detallado.
-                    METODOLOGÍA: {tecnica}
-                    
-                    INSTRUCCIONES DE FORMATO Y PROFUNDIDAD:
-                    1. NO RESUMAS. Tu objetivo es la profundidad y el detalle.
-                    2. Cada punto analizado debe tener al menos 2-3 párrafos de desarrollo.
-                    3. Usa un tono académico, objetivo y formal.
-                    4. Cita textualmente las fuentes proporcionadas cuando sea relevante.
-                    5. Estructura la respuesta con encabezados Markdown claros.
-                    """
-
-                    if "AUTO: Responder TODO" in mode:
-                        lista_p = "\n".join([f"- {p}" for p in pregs])
-                        full_prompt = f"{instruccion_base}\n\nResponde DETALLADAMENTE a cada una de estas preguntas:\n{lista_p}\n\nCONTEXTO:\n{ctx}"
-                    elif mode in pregs:
-                        full_prompt = f"{instruccion_base}\n\nPREGUNTA ESPECÍFICA:\n{mode}\n\nCONTEXTO:\n{ctx}"
-                    else:
-                        full_prompt = f"{instruccion_base}\n\nREQUERIMIENTO (PIR):\n{pir}\n\nCONTEXTO:\n{ctx}"
-                    
-                    with st.spinner(f"Analizando a profundidad con {MODELO_ACTUAL}..."):
-                        res = model.generate_content(full_prompt, generation_config=genai.types.GenerationConfig(temperature=temp))
-                        st.session_state['res'] = res.text
-                        st.markdown("### 📡 Informe Generado")
-                        st.write(res.text)
-                except Exception as e: st.error(f"Error: {e}")
-
-    # ---------------------------------------------------------
-    # MODO 2: EJECUCIÓN GLOBAL (NUEVO)
-    # ---------------------------------------------------------
-    else:
-        st.info("ℹ️ Este modo aplicará TODAS las metodologías disponibles en la base de datos al documento cargado. Esto tomará varios minutos.")
+    c1, c2 = st.columns([1, 2])
+    
+    with c1:
+        st.markdown("### ⚙️ Parámetros")
+        if not tecnicas_seleccionadas:
+            st.info("👈 Selecciona al menos 1 técnica en la barra lateral.")
         
-        if st.button("☢️ INICIAR PROTOCOLO GLOBAL (EJECUTAR TODO)", type="primary", use_container_width=True):
+        # CHECKBOX PARA AGENTE DE BÚSQUEDA
+        usar_internet = st.checkbox("🌐 Activar Búsqueda Web en Vivo", help="La IA buscará información actualizada en DuckDuckGo antes de analizar.")
+        
+        pir = st.text_area("Requerimiento Específico (PIR):", placeholder="Opcional: Define un enfoque...", height=100)
+
+    with c2:
+        if st.button("🚀 EJECUTAR MISIÓN (MULTI-TECNICA)", type="primary", use_container_width=True, disabled=len(tecnicas_seleccionadas)==0):
             try:
                 genai.configure(api_key=st.session_state['api_key'])
                 model = genai.GenerativeModel(MODELO_ACTUAL)
                 ctx = st.session_state['texto_analisis']
                 
-                # INICIALIZAR INFORME MAESTRO
-                informe_maestro = f"# 🛡️ INFORME DE INTELIGENCIA GLOBAL\nFECHA: {datetime.datetime.now().strftime('%d/%m/%Y %H:%M')}\nFUENTE: {st.session_state['origen_dato']}\n\n"
+                # FASE 1: BÚSQUEDA WEB (SI ESTÁ ACTIVADA)
+                contexto_web = ""
+                if usar_internet:
+                    with st.status("🌐 Agente buscando en internet...", expanded=True) as status:
+                        query_search = f"{pir} {st.session_state['origen_dato']}" if pir else f"Análisis estratégico sobre {st.session_state['origen_dato']}"
+                        res_web = buscar_en_web(query_search)
+                        contexto_web = f"\n\n--- 🌐 INFORMACIÓN ACTUALIZADA DE INTERNET ---\n{res_web}\n------------------------------------------\n"
+                        status.update(label="✅ Búsqueda completada", state="complete", expanded=False)
                 
-                # BARRA DE PROGRESO
+                # FASE 2: BUCLE DE ANÁLISIS
+                informe_final = f"# INFORME DE INTELIGENCIA V12\nFECHA: {datetime.datetime.now().strftime('%d/%m/%Y')}\nFUENTE: {st.session_state['origen_dato']}\n\n"
+                
                 progreso = st.progress(0)
-                status_text = st.empty()
-                total_steps = len(DB_CONOCIMIENTO)
                 
-                # BUCLE DE EJECUCIÓN
-                for i, (nombre_tec, datos) in enumerate(DB_CONOCIMIENTO.items()):
-                    # Evitar ejecutar los títulos de sección
-                    if "---" in nombre_tec: 
-                        continue
-                        
-                    status_text.text(f"⏳ Analizando: {nombre_tec}...")
+                for i, tec in enumerate(tecnicas_seleccionadas):
+                    st.caption(f"Analizando: {tec}...")
                     
-                    # PROMPT ESPECIALISTA (ADAPTADO AL BUCLE)
-                    prompt_ciclo = f"""
-                    ACTÚA COMO: Especialista en Derecho y Política Internacional y Analista de Inteligencia Estratégica Senior.
-                    TAREA: Realizar un análisis profundo usando la metodología: {nombre_tec}.
+                    # PROMPT CONSTRUIDO CON DATOS + WEB
+                    prompt = f"""
+                    ACTÚA COMO: Especialista en Derecho y Política Internacional y Analista Senior.
+                    TAREA: Realizar un análisis profundo usando la metodología: {tec}.
+                    PIR (Requerimiento): {pir}
                     
                     INSTRUCCIONES:
-                    1. Responde a las preguntas clave de esta metodología de forma exhaustiva.
-                    2. Mantén la profundidad académica (2-3 párrafos por punto).
-                    3. Contexto a analizar: {ctx}
+                    1. Profundidad académica (2-3 párrafos por punto).
+                    2. Cita fuentes.
+                    3. Integra la información web si es relevante.
+                    
+                    CONTEXTO DOCUMENTAL:
+                    {ctx}
+                    
+                    {contexto_web}
                     """
                     
-                    # LLAMADA API
-                    respuesta = model.generate_content(prompt_ciclo, generation_config=genai.types.GenerationConfig(temperature=temp))
+                    res = model.generate_content(prompt, generation_config=genai.types.GenerationConfig(temperature=temp))
+                    informe_final += f"\n\n## 📌 {tec}\n{res.text}\n\n---\n"
                     
-                    # AGREGAR AL INFORME
-                    informe_maestro += f"\n\n## 📌 {nombre_tec}\n{respuesta.text}\n\n---\n"
-                    
-                    # ACTUALIZAR PROGRESO
-                    progreso.progress((i + 1) / total_steps)
-                    
-                    # 🛑 FRENO DE SEGURIDAD (3 Segundos)
-                    time.sleep(3)
+                    progreso.progress((i + 1) / len(tecnicas_seleccionadas))
+                    time.sleep(2) # Pausa técnica
                 
-                st.session_state['res'] = informe_maestro
-                status_text.success("✅ Protocolo Global Finalizado Exitosamente.")
-                st.markdown(informe_maestro)
+                st.session_state['res'] = informe_final
+                st.session_state['tecnicas_usadas'] = ", ".join(tecnicas_seleccionadas)
+                st.success("✅ Misión Completada")
+                st.markdown(informe_final)
 
-            except Exception as e: st.error(f"Error crítico en protocolo global: {e}")
+            except Exception as e: st.error(f"Error: {e}")
 
-# DESCARGAS (COMÚN PARA AMBOS MODOS)
+# DESCARGAS
 if 'res' in st.session_state:
     st.markdown("---")
-    cd1, cd2 = st.columns(2)
-    cd1.download_button("Descargar WORD", crear_word(st.session_state['res'], "Informe Integral", st.session_state['origen_dato']), "Informe_V11.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
-    try: cd2.download_button("Descargar PDF", bytes(crear_pdf(st.session_state['res'], "Informe Integral", st.session_state['origen_dato'])), "Informe_V11.pdf", "application/pdf")
-    except Exception as e: cd2.error(f"Error PDF: {e}")
+    st.subheader("📥 Descargar Paquete de Inteligencia")
+    col1, col2, col3 = st.columns(3)
+    
+    # WORD
+    doc_b = crear_word(st.session_state['res'], st.session_state['tecnicas_usadas'], st.session_state['origen_dato'])
+    col1.download_button("📄 Informe WORD", doc_b, "Informe_V12.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+    
+    # PDF
+    try:
+        pdf_b = crear_pdf(st.session_state['res'], st.session_state['tecnicas_usadas'], st.session_state['origen_dato'])
+        col2.download_button("📑 Informe PDF", bytes(pdf_b), "Informe_V12.pdf", "application/pdf")
+    except: pass
+    
+    # POWERPOINT (NUEVO)
+    try:
+        pptx_b = crear_pptx(st.session_state['res'], st.session_state['tecnicas_usadas'], st.session_state['origen_dato'])
+        col3.download_button("📊 Presentación PPTX", pptx_b, "Presentacion_V12.pptx", "application/vnd.openxmlformats-officedocument.presentationml.presentation")
+    except Exception as e: col3.error(f"Error PPTX: {e}")
