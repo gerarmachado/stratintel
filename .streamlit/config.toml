@@ -1,0 +1,7 @@
+[theme]
+primaryColor = "#00FFC2"   # Color principal (Verde Cian Intel)
+backgroundColor = "#0E1117" # Fondo Oscuro Profundo
+secondaryBackgroundColor = "#1E252B" # Fondo de la barra lateral (Gris Azulado)
+textColor = "#FAFAFA"       # Texto Blanco
+font = "sans serif"
+base = "dark"
