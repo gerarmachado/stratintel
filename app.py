@@ -225,7 +225,7 @@ def crear_word(texto, tecnica, fuente):
         "No constituye asesoramiento legal, financiero ni militar vinculante. "
         "El operador humano debe verificar los hallazgos críticos antes de ejecutar acciones."
     )
-    aviso_runner.font.size = 9
+    aviso_runner.font.size = 8
     aviso_runner.italic = True
     
     b = BytesIO(); doc.save(b); b.seek(0)
@@ -362,3 +362,4 @@ if 'res' in st.session_state:
     cd1.download_button("Descargar WORD", crear_word(st.session_state['res'], tecnica, st.session_state['origen_dato']), "Informe_V10.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
     try: cd2.download_button("Descargar PDF", bytes(crear_pdf(st.session_state['res'], tecnica, st.session_state['origen_dato'])), "Informe_V10.pdf", "application/pdf")
     except Exception as e: cd2.error(f"Error PDF: {e}")
+
