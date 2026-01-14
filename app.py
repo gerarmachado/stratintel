@@ -54,50 +54,224 @@ if "GOOGLE_API_KEY" in st.secrets:
 MODELO_ACTUAL = "gemini-2.5-flash"  
 
 # ==========================================
-# 🧠 BASE DE DATOS DE CONOCIMIENTO
+# 🧠 BASE DE DATOS MAESTRA (V15 - ENFOQUES INTEGRALES MULTIDIMENSIONALES)
 # ==========================================
 DB_CONOCIMIENTO = {
     "✨ RECOMENDACIÓN AUTOMÁTICA": {
-        "desc": "La IA decide la mejor estrategia.",
+        "desc": "La IA decide la mejor estrategia basándose en el contenido.",
         "preguntas": ["Identifica los hallazgos estratégicos más críticos.", "Realiza una evaluación integral de riesgos.", "Genera un Resumen Ejecutivo (BLUF).", "¿Cuáles son las anomalías o patrones ocultos más relevantes?"]
     },
-    "Niveles de Análisis (Barry Buzan)": {
-        "desc": "Seguridad Multisectorial (Militar, Política, Económica, Societal, Ambiental).",
+
+    # -------------------------------------------------------------------------
+    # 🏛️ ESCUELA REALISTA (PODER Y ESTRUCTURA)
+    # -------------------------------------------------------------------------
+    "--- REALISMO Y PODER ---": { "desc": "", "preguntas": [] },
+
+    "Hans Morgenthau (Realismo Clásico Integral)": {
+        "desc": "Los 6 Principios del Realismo Político y el Interés como Poder.",
         "preguntas": [
+            "Leyes Objetivas: ¿Qué fuerzas inherentes a la naturaleza humana (egoísmo, dominio) están impulsando este conflicto?",
+            "Interés y Poder: Define el 'Interés Nacional' de los actores en términos de poder, no de moralidad.",
+            "Supervivencia del Estado: ¿Está la integridad territorial o política del Estado en riesgo directo?",
+            "Autonomía de la Esfera Política: Analiza la decisión desde una lógica puramente política, ignorando consideraciones económicas o legales secundarias."
+        ]
+    },
+    "Kenneth Waltz (Neorrealismo / Imágenes)": {
+        "desc": "Las Tres Imágenes (Hombre, Estado, Sistema) y la Estructura Anárquica.",
+        "preguntas": [
+            "Tercera Imagen (Sistémica): ¿Cómo la anarquía internacional y la distribución de poder (polaridad) obligan al actor a actuar así?, ¿Cómo afecta la distribución de capacidades (unipolar/multipolar)?",
+            "Segunda Imagen (Estatal): ¿Es el régimen político interno irrelevante para la política exterior en este caso?",
+            "Equilibrio de Poder: ¿Está el actor haciendo 'Balancing' (aliarse contra el fuerte) o 'Bandwagoning' (unirse al fuerte)?",
+            "Principio de Autoayuda: ¿Qué medidas unilaterales está tomando el actor para garantizar su propia seguridad?, ¿El comportamiento es defensivo (seguridad) u ofensivo (poder)?"
+        ]
+    },
+    "John Mearsheimer (Realismo Ofensivo)": {
+        "desc": "La Tragedia de las Grandes Potencias y la Hegemonía.",
+        "preguntas": [
+            "Búsqueda de Hegemonía: ¿Está el actor intentando convertirse en el Hegemon regional para asegurar su supervivencia?, ¿Está aprovechando oportunidades para alterar el status quo?",
+            "Poder Detenedor del Agua: ¿Cómo la geografía (océanos, montañas) limita la proyección de poder del actor?, Evalúa el potencial de poder latente (economía/población) vs poder militar actual.",
+            "Maximizador de Poder: ¿Está el actor aprovechando cada oportunidad para debilitar a sus rivales potenciales?, ¿Cómo está maximizando su poder relativo a expensas de sus vecinos?",
+            "Estrategia de 'Buck-Passing': ¿Está intentando que otro estado asuma el costo de contener al agresor?"
+        ]
+    },
+    "Stephen Walt & Robert Jervis (Realismo Defensivo)": {
+        "desc": "Equilibrio de Amenazas y Dilema de Seguridad.",
+        "preguntas": [
+            "Teoría del Equilibrio de Amenazas: Evalúa la amenaza combinando: 1) Poder Agregado, 2) Geografía, 3) Capacidad Ofensiva, 4) Intenciones Agresivas. ¿Quién es percibido como el más amenazante (no solo el más fuerte)?",
+            "Dilema de Seguridad: ¿Las medidas defensivas de un actor están siendo malinterpretadas como ofensivas por el otro?",
+            "Espiral de Conflicto: ¿Cómo una acción defensiva ha provocado una reacción hostil involuntaria?, ¿Las intenciones agresivas son reales o producto de la incertidumbre sistémica?."
+        ]
+    },
+    "Realismo Neoclásico (Schweller)": {
+        "desc": "El sistema presiona, pero la política interna decide.",
+        "preguntas": [
+            "¿Qué variables domésticas están filtrando o bloqueando la respuesta al sistema internacional?",
+            "¿Es el estado 'coherente' o están las élites fragmentadas?",
+            "¿Tiene el gobierno la capacidad extractiva para movilizar recursos ante la amenaza?"
+        ]
+    },
+    "Realismo Periférico (Carlos Escudé)": {
+        "desc": "Estrategia de supervivencia para estados dependientes (Sur Global).",
+        "preguntas": [
+            "Costo-Beneficio de la Soberanía: ¿El costo de confrontar al Hegemon supera los beneficios para el bienestar ciudadano?",
+            "Política de Alineamiento: ¿Debería el estado adoptar un perfil bajo o alinearse para obtener recursos y evitar sanciones?",
+            "Evaluación de Autonomía: ¿Se está sacrificando el desarrollo económico por una retórica nacionalista vacía?"
+        ]
+    },
+
+    # -------------------------------------------------------------------------
+    # 🤝 ESCUELA LIBERAL Y CONSTRUCTIVISTA (INSTITUCIONES E IDENTIDAD)
+    # -------------------------------------------------------------------------
+    "--- LIBERALISMO, IDENTIDAD Y COOPERACIÓN ---": { "desc": "", "preguntas": [] },
+
+    "Joseph Nye (Poder Multidimensional 3D)": {
+        "desc": "Soft Power, Smart Power y el Tablero de Ajedrez Tridimensional.",
+        "preguntas": [
+            "Dimensión Soft Power: ¿Qué activos de cultura, valores o políticas otorgan atracción y legitimidad al actor?",
+            "Dimensión Smart Power: ¿Está combinando eficazmente la coerción (Hard) con la persuasión (Soft)?",
+            "Tablero Superior (Militar): Analiza la distribución de poder militar (¿Unipolar?).",
+            "Tablero Medio (Económico): Analiza la distribución económica (¿Multipolar?).",
+            "Tablero Inferior (Transnacional): ¿Qué actores no estatales (Hackers, ONGs, Terrorismo) actúan fuera del control estatal?"
+        ]
+    },
+    "Robert Axelrod (Complejidad de la Cooperación)": {
+        "desc": "Teoría de Juegos, Evolución de la Cooperación y Normas.",
+        "preguntas": [
+            "El Dilema del Prisionero: ¿Existen incentivos estructurales que hacen racional la traición individual?",
+            "Estrategia Tit-for-Tat: ¿Está el actor respondiendo con reciprocidad estricta (cooperar si cooperas, castigar si traicionas)?, ¿Está el actor respondiendo proporcionalmente (Tit-for-Tat) o escalando?",
+            "La Sombra del Futuro: ¿Es la interacción lo suficientemente duradera para fomentar la cooperación?, ¿Tienen los actores expectativas de interactuar nuevamente? (Clave para cooperar)",
+            "Meta-Normas: ¿Existe presión social o sanciones de terceros para castigar a los desertores?",
+            "Detección de Trampas: ¿Qué mecanismos de verificación existen para asegurar el cumplimiento?",
+            "Estructura de Pagos: ¿Cómo alterar los incentivos para que cooperar sea más rentable que traicionar?"
+        ]
+    },
+    "Immanuel Kant (Triángulo de la Paz Liberal)": {
+        "desc": "Paz Democrática, Interdependencia Económica e Instituciones.",
+        "preguntas": [
+            "Paz Democrática: ¿Son los actores democracias? (Si lo son, la probabilidad de guerra disminuye drásticamente).",
+            "Interdependencia Económica: ¿El nivel de comercio mutuo hace que la guerra sea demasiado costosa?",
+            "Organizaciones Internacionales: ¿Pertenecen a instituciones comunes que medien el conflicto?",
+            "Derecho Cosmopolita: ¿Existe un respeto supranacional por los derechos de los ciudadanos?"
+        ]
+    },
+    "Keohane & Nye (Neoliberalismo Institucional)": {
+        "desc": "Interdependencia Compleja y Regímenes Internacionales.",
+        "preguntas": [
+            "Canales Múltiples: ¿Existen conexiones entre sociedades (no solo entre gobiernos) que afecten el conflicto?, ¿Qué instituciones internacionales facilitan la cooperación o reducen costos de transacción?",
+            "Ausencia de Jerarquía: ¿Están los temas militares subordinados a temas económicos o ecológicos en esta crisis?",
+            "Interdependencia Compleja: ¿Los vínculos económicos hacen la guerra irracional?",
+            "Regímenes Internacionales: ¿Qué normas o reglas implícitas están gobernando las expectativas de los actores?, ¿Existe un régimen internacional que regule este conflicto?."
+        ]
+    },
+    "Alexander Wendt (Constructivismo Social)": {
+        "desc": "La anarquía es lo que los estados hacen de ella.",
+        "preguntas": [
+            "Culturas de la Anarquía: ¿El sistema es Hobbesiano (Enemigos), Lockeano (Rivales) o Kantiano (Amigos)?",
+            "Estructura Ideacional: ¿Cómo las identidades históricas y normas sociales definen el interés nacional?",
+            "Ciclo de Refuerzo: ¿Cómo las interacciones pasadas han construido la percepción actual de 'amenaza'?",
+            "¿Qué normas internacionales están constriñendo o habilitando la acción?."
+        ]
+    },
+    "Samuel Huntington (Choque de Civilizaciones)": {
+        "desc": "Conflictos de identidad cultural y religiosa.",
+        "preguntas": [
+            "Líneas de Falla: ¿Ocurre el conflicto en la frontera entre dos civilizaciones distintas?, ¿Es el núcleo del conflicto la identidad religiosa o cultural?",
+            "Síndrome del País Pariente (Kin-Country): ¿Están otros estados interviniendo por lealtad cultural/religiosa?",
+            "Occidente vs El Resto: ¿Es una reacción contra la imposición de valores occidentales?"
+        ]
+    },
+
+    # -------------------------------------------------------------------------
+    # 🧠 TOMA DE DECISIONES Y ANÁLISIS ESTRATÉGICO
+    # -------------------------------------------------------------------------
+    "--- TOMA DE DECISIONES Y SEGURIDAD ---": { "desc": "", "preguntas": [] },
+
+    "Graham Allison (Los 3 Modelos de Decisión)": {
+        "desc": "Análisis de la crisis desde múltiples lentes (La Esencia de la Decisión).",
+        "preguntas": [
+            "Modelo I (Actor Racional): ¿Cuál es la opción lógica que maximiza beneficios y minimiza costos estratégicos?",
+            "Modelo II (Proceso Organizacional): ¿Qué procedimientos estándar (SOPs) y rutinas limitan la flexibilidad del gobierno?",
+            "Modelo III (Política Burocrática): ¿Qué agencias o individuos internos están luchando por el poder y cómo afecta esto la decisión final?"
+        ]
+    },
+    "Barry Buzan (Seguridad Integral y Securitización)": {
+        "desc": "Los 5 Sectores de Seguridad y la Teoría de la Securitización.",
+        "preguntas": [
+            "Análisis Multisectorial: Evalúa amenazas en los 5 sectores: Militar, Político, Económico, Societal y Ambiental.",
             "Nivel Sistémico: ¿Cómo influye la anarquía internacional o la polaridad en el conflicto?",
             "Nivel Estatal: ¿Qué presiones burocráticas o nacionales limitan al Estado?",
             "Nivel Individual: ¿El perfil psicológico de los líderes altera la toma de decisiones?",
-            "Seguridad Societal: ¿Está amenazada la identidad colectiva (religión, etnia, cultura)?"
+            "Seguridad Societal: ¿Está amenazada la identidad colectiva (religión, etnia, cultura)?",
+            "Actor Securitizador: ¿Quién está declarando el asunto como una 'amenaza existencial'?",
+            "Objeto Referente: ¿Qué es exactamente lo que se intenta proteger (El Estado, la Nación, la Economía)?",
+            "Medidas Extraordinarias: ¿Se está usando la retórica de seguridad para justificar acciones fuera de la política normal?"
         ]
     },
-    "Evolución de la Cooperación (Axelrod)": {
-        "desc": "Teoría de Juegos.",
+    "John Boyd (Ciclo OODA)": {
+        "desc": "Velocidad de decisión en conflicto (Observar, Orientar, Decidir, Actuar).",
         "preguntas": [
-            "Sombra del Futuro: ¿Tienen los actores expectativas de interactuar nuevamente?",
-            "Reciprocidad: ¿Está el actor respondiendo proporcionalmente (Tit-for-Tat)?",
-            "Detección de Trampas: ¿Qué mecanismos de verificación existen?",
-            "Estructura de Pagos: ¿Cómo alterar los incentivos para fomentar la cooperación?"
+            "Velocidad del Ciclo: ¿Quién está completando su ciclo OODA más rápido?",
+            "Fase de Orientación: ¿Cómo los sesgos culturales y la herencia genética moldean la percepción del adversario?",
+            "Colapso del Adversario: ¿Cómo podemos generar ambigüedad para aislar al enemigo de su entorno?"
         ]
     },
-    "Análisis FODA (SWOT) Intel": {
-        "desc": "Enfoque de Inteligencia.",
-        "preguntas": ["Vulnerabilidades internas críticas (Debilidades).", "Amenazas externas inminentes.", "Estrategia 'Maxi-Mini' (Defensiva).", "Cruce Fortalezas vs Oportunidades (Ofensiva)."]
+
+    # -------------------------------------------------------------------------
+    # 🛠️ TÉCNICAS ESTRUCTURADAS (SATs)
+    # -------------------------------------------------------------------------
+    "--- TÉCNICAS ESTRUCTURADAS (SATs) ---": { "desc": "", "preguntas": [] },
+
+    "Análisis de Actores (Stakeholder Mapping)": {
+        "desc": "Mapeo de intereses, poder y posturas.",
+        "preguntas": [
+            "Matriz Poder vs Interés: Clasifica a todos los actores relevantes.",
+            "Identificación de Vetadores: ¿Quién tiene la capacidad de bloquear cualquier acuerdo?",
+            "Aliados y Spoilers: ¿Quién gana con la resolución y quién gana con la continuación del conflicto?"]
     },
     "Análisis Geopolítico (PMESII-PT)": {
-        "desc": "Variables del entorno operativo.",
+        "desc": "Variables del entorno operativo: Político, Militar, Económico, Social, Info, Infraestructura, Físico, Tiempo.",
         "preguntas": ["Interacción Política-Militar.", "Vulnerabilidad de Infraestructura crítica.", "Impacto Social y Cultural.", "Desglose completo PMESII-PT."]
     },
     "Análisis DIME (Poder Nacional)": {
         "desc": "Diplomático, Informacional, Militar, Económico.",
         "preguntas": ["Capacidad de proyección Económica (Sanciones/Ayudas).", "Aislamiento o alianzas Diplomáticas.", "Guerra de Información y Narrativa.", "Capacidad Militar real vs disuasoria."]
     },
-    "Análisis de Hipótesis (ACH)": {
-        "desc": "Validación de Hipótesis.",
-        "preguntas": ["Generación de 4 Hipótesis concurrentes.", "Evidencia diagnóstica (que desmiente hipótesis).", "Intelligence Gaps (lo que no sabemos).", "Indicadores de Decepción (Engaño)."]
+    "Análisis de Hipótesis en Competencia (ACH)": {
+        "desc": "Matriz para evitar sesgos de confirmación.",
+        "preguntas": [
+            "Generación: Formula al menos 4 hipótesis exclusivas sobre lo que está ocurriendo.",
+            "Diagnóstico: Identifica la evidencia que sea consistente con una hipótesis pero inconsistente con las otras.",
+            "Engaño (Decepción): ¿Alguna evidencia podría haber sido plantada para engañarnos?"
+        ]
     },
     "Abogado del Diablo": {
         "desc": "Pensamiento crítico.",
         "preguntas": ["Desafío frontal a la conclusión más probable.", "Defensa lógica de la postura 'irracional' del adversario."]
+    },
+    "Análisis de Cisne Negro (Nassim Taleb)": {
+        "desc": "Eventos altamente improbables de impacto masivo.",
+        "preguntas": [
+            "Lo Impensable: Describe un evento 'imposible' que haría colapsar toda la estrategia actual.",
+            "Fragilidad vs Antifragilidad: ¿El sistema se rompe con el estrés o se fortalece?",
+            "Falacia Narrativa: ¿Estamos inventando una historia coherente para explicar datos que son puro azar?"
+        ]
+    },
+    "Análisis FODA (SWOT) de Inteligencia": {
+        "desc": "Enfoque estratégico ofensivo/defensivo.",
+        "preguntas": [
+            "Vulnerabilidades Críticas (Debilidades internas).",
+            "Amenazas Inminentes (Externas).",
+            "Estrategia de Supervivencia (Mini-Maxi): Minimizar debilidades para evitar amenazas.",
+            "Ventana de Oportunidad: ¿Cómo usar las fortalezas actuales para explotar una oportunidad temporal?"
+        ]
+    },
+    "Técnica de los 5 Porqués": {
+        "desc": "Búsqueda de la Causa Raíz.",
+        "preguntas": [
+            "Define el problema visible.",
+            "Pregunta 1: ¿Por qué ocurre esto?",
+            "Pregunta 2: ¿Por qué ocurre lo anterior? (Repetir hasta 5 veces)",
+            "Identifica la falla sistémica original, no el síntoma."]
     },
     "Escenarios Prospectivos": {
         "desc": "Cono de Plausibilidad.",
@@ -108,8 +282,13 @@ DB_CONOCIMIENTO = {
         "preguntas": ["Identificación del COG Estratégico.", "Capacidades Críticas (Requerimientos).", "Vulnerabilidades Críticas (Puntos débiles)."]
     },
     "Matriz CARVER": {
-        "desc": "Selección de Objetivos.",
-        "preguntas": ["Evaluación de Criticidad vs Vulnerabilidad.", "Efecto sistémico del objetivo.", "Recuperabilidad del activo."]
+        "desc": "Selección y priorización de objetivos.",
+        "preguntas": [
+            "Criticidad: ¿Qué tan vital es este objetivo para la misión enemiga?",
+            "Vulnerabilidad: ¿Qué tan fácil es atacarlo?",
+            "Recuperabilidad: ¿Cuánto tiempo tardarían en reemplazarlo?",
+            "Efecto: ¿Cuál es el impacto sistémico de su neutralización?"
+        ]
     }
 }
 
