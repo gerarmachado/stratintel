@@ -3,7 +3,6 @@ google-generativeai
 langchain-google-genai
 langchain-community
 duckduckgo-search
-python-pptx
 faiss-cpu
 youtube-transcript-api
 yt-dlp
@@ -12,3 +11,4 @@ python-docx
 fpdf
 beautifulsoup4
 requests
+
