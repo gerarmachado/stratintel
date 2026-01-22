@@ -323,6 +323,36 @@ DB_CONOCIMIENTO = {
     }
 }
 
+# ==========================================
+# 📘 TEXTO DEL MANUAL (CONTENIDO ESTÁTICO)
+# ==========================================
+MANUAL_USUARIO = """
+# 📘 MANUAL DE OPERACIONES | SISTEMA STRATINTEL
+
+## 1. INTRODUCCIÓN
+**StratIntel** es un Sistema de Soporte a la Decisión (DSS) diseñado para analistas de inteligencia.
+
+## 2. VERSIONES DEL SISTEMA
+* **🛡️ Versión Beta:** Solo documentos locales. Sin conexión externa.
+* **🌐 Versión Master:** Conexión Web y YouTube (si está habilitada).
+
+## 3. FLUJO DE TRABAJO
+1. **Ingesta:** Suba sus PDFs, DOCXs o pegue texto en la pestaña correspondiente.
+2. **Configuración:** Ingrese su API Key en el menú lateral.
+3. **Misión:** Seleccione las técnicas de análisis (Ej: Realismo, Prospectiva).
+4. **Profundidad:**
+    * *Estratégico:* Resumen ejecutivo.
+    * *Táctico:* Responde todas las preguntas.
+    * *Operacional:* Selección manual de preguntas.
+
+## 4. HERRAMIENTAS ESPECIALES
+* **🎨 Visualización:** Genere mapas de actores al final del reporte.
+* **🕵️ Contrainteligencia:** Cargue 2+ documentos y use la técnica "Triangulación" para hallar contradicciones.
+
+## 5. EXPORTACIÓN
+Use los botones al final para descargar el informe en Word o PDF.
+"""
+
 # --- GESTIÓN DE ESTADO ---
 if 'api_key' not in st.session_state: st.session_state['api_key'] = ""
 if 'texto_analisis' not in st.session_state: st.session_state['texto_analisis'] = ""
@@ -419,7 +449,7 @@ st.title("♟️ StratIntel | División de Análisis")
 st.markdown("**Sistema de Inteligencia Estratégica (DSS)**")
 
 # CARGA
-t1, t2, t3, = st.tabs(["📂 PDFs", "📝 DOCXs", "✍️ Manual"])
+t1, t2, t3, t_ayuda = st.tabs(["📂 PDFs", "📝 DOCXs", "✍️ Manual", "ℹ️ Ayuda"])
 with t1:
     f = st.file_uploader("PDFs", type="pdf", accept_multiple_files=True)
     if f and st.button("Procesar PDF"):
@@ -431,6 +461,20 @@ with t2:
 with t3:
     m = st.text_area("Manual")
     if st.button("Fijar"): st.session_state['texto_analisis']=m; st.session_state['origen_dato']="Manual"; st.success("OK")
+
+with t_ayuda:
+    st.markdown(MANUAL_USUARIO)
+    
+    # Botón para descargar el Manual en PDF (Generado al vuelo)
+    st.markdown("---")
+    if st.button("💾 Descargar Manual en PDF"):
+        # Usamos tu misma función de crear_pdf
+        pdf_bytes = crear_pdf(MANUAL_USUARIO, "Documentación Oficial", "Sistema StratIntel")
+        st.download_button(
+            label="Confirmar Descarga",
+            data=bytes(pdf_bytes),
+            file_name="Manual_Operaciones_StratIntel.pdf",
+            mime="application/pdf")
 
 st.markdown("---")
 if st.session_state['texto_analisis']:
@@ -550,6 +594,7 @@ if 'res' in st.session_state:
     c1.download_button("Descargar Word", crear_word(st.session_state['res'], st.session_state['tecnicas_usadas'], st.session_state['origen_dato']), "Reporte.docx")
     try: c2.download_button("Descargar PDF", bytes(crear_pdf(st.session_state['res'], st.session_state['tecnicas_usadas'], st.session_state['origen_dato'])), "Reporte.pdf")
     except: pass
+
 
 
 
