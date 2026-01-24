@@ -1,6 +1,5 @@
 import streamlit as st
 import google.generativeai as genai
-from langchain_google_genai import ChatGoogleGenerativeAI
 import pypdf
 from docx import Document
 from fpdf import FPDF
@@ -594,6 +593,7 @@ if 'res' in st.session_state:
     c1.download_button("Descargar Word", crear_word(st.session_state['res'], st.session_state['tecnicas_usadas'], st.session_state['origen_dato']), "Reporte.docx")
     try: c2.download_button("Descargar PDF", bytes(crear_pdf(st.session_state['res'], st.session_state['tecnicas_usadas'], st.session_state['origen_dato'])), "Reporte.pdf")
     except: pass
+
 
 
 
