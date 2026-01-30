@@ -1,8 +1,10 @@
 streamlit
-google-generativeai
+groq
 pypdf
 python-docx
 fpdf
-langchain-google-genai
-
-
+graphviz
+beautifulsoup4
+requests
+langchain-community
+duckduckgo-search
