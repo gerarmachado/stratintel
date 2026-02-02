@@ -859,7 +859,7 @@ def generar_esquema_graphviz(texto_analisis, api_key):
         {texto_analisis[:15000]}
         """
         
-       res = model.generate_content(prompt)
+        res = model.generate_content(prompt)
         codigo_dot = res.text.replace("```dot", "").replace("```", "").replace("DOT", "").strip()
         grafico = graphviz.Source(codigo_dot)
         return grafico, None
@@ -1108,6 +1108,7 @@ if 'res' in st.session_state and st.session_state['res']:
     try:
         c2.download_button("Descargar PDF", bytes(crear_pdf(st.session_state['res'], st.session_state.get('tecnicas_usadas',''), st.session_state['origen_dato'])), "Reporte.pdf", use_container_width=True)
     except: pass
+
 
 
 
