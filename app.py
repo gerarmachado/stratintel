@@ -1,6 +1,6 @@
 import streamlit as st
-from groq import Groq  # <--- NUEVO MOTOR
-import pypdf
+import google.generativeai as genai
+from openai import OpenAI
 from docx import Document
 from fpdf import FPDF
 from io import BytesIO
@@ -1001,6 +1001,16 @@ else:
         pir = st.text_area("PIR (Opcional):", height=100)
 
     with c2:
+        # --- NUEVO: SELECTOR DE MOTOR (El Interruptor) ---
+        st.markdown("### 🧠 Motor de IA")
+        col_motor_1, col_motor_2 = st.columns(2)
+        with col_motor_1:
+             PROVEEDOR = st.radio("Proveedor:", ["Google Gemini (Rápido)", "DeepSeek R1 (OpenRouter)"], label_visibility="collapsed")
+        with col_motor_2:
+             api_key_or = ""
+             if "DeepSeek" in PROVEEDOR:
+                 api_key_or = st.text_input("🔑 Key OpenRouter:", type="password", key="key_or_input", help="Consíguela gratis en openrouter.ai")
+
         # BOTÓN PRINCIPAL
         if st.button("🚀 EJECUTAR MISIÓN", type="primary", use_container_width=True, disabled=len(tecnicas_seleccionadas)==0):
             try:
@@ -1008,18 +1018,22 @@ else:
                 if 'codigo_dot_mapa' in st.session_state: del st.session_state['codigo_dot_mapa']
                 if 'res' in st.session_state: del st.session_state['res']
 
-                # 2. CONFIGURACIÓN GROQ
-                client = Groq(api_key=st.session_state['api_key'])
+                # 2. CONFIGURACIÓN INICIAL (GOOGLE)
+                # Configuramos Google Gemini por defecto (necesario para el mapa visual o si se elige como motor)
+                genai.configure(api_key=st.session_state['api_key'])
+                model_gemini = genai.GenerativeModel("gemini-2.5-flash")
+
                 ctx = st.session_state['texto_analisis']
 
                 INSTRUCCIONES_ESTILO = """
-                DIRECTRICES:
-                1. EXTENSIÓN: Informe exhaustivo, PROHIBIDO RESUMIR. Mínimo 3-4 párrafos por punto.
-                2. RIGOR: Citas textuales, matices teóricos y tono de inteligencia militar.
-                3. IDIOMA: Español Profesional.
+                DIRECTRICES DE FORMATO Y ESTRUCTURA (CRÍTICO):
+                1. EXTENSIÓN: Usa el máximo espacio disponible pero PRIORIZA LA FINALIZACIÓN.
+                2. ESTRUCTURA VISUAL: Usa Títulos (##), Negritas y Viñetas.
+                3. ENFOQUE: Análisis denso y directo (BLUF).
+                4. RIGOR: Cita fuentes y mantén un tono de inteligencia militar.
                 """
                 
-                # 3. BÚSQUEDA WEB (Igual que antes)
+                # 3. BÚSQUEDA WEB
                 contexto_web = ""
                 if usar_internet:
                     with st.status("🌐 Buscando...", expanded=True) as s:
@@ -1028,15 +1042,15 @@ else:
                         contexto_web = f"\nINFO WEB:\n{res_web}\n"
                         s.update(label="✅ Hecho", state="complete", expanded=False)
                 
-                # 4. INICIALIZACIÓN
-                informe_final = f"# INFORME DE INTELIGENCIA\nFECHA: {datetime.datetime.now().strftime('%d/%m/%Y')}\nFUENTE: {st.session_state['origen_dato']}\n\n"
+                # 4. INICIALIZACIÓN INFORME
+                informe_final = f"# INFORME\nFECHA: {datetime.datetime.now().strftime('%d/%m/%Y')}\nFUENTE: {st.session_state['origen_dato']}\nMOTOR: {PROVEEDOR}\n\n"
                 progreso = st.progress(0)
                                 
                 # 5. BUCLE DE ANÁLISIS
                 for i, tec in enumerate(tecnicas_seleccionadas):
                     st.caption(f"Analizando: {tec}...")
                     
-                    # Lógica de Preguntas (Igual que antes)
+                    # Lógica de Preguntas
                     instruccion_preguntas = ""
                     if "Táctico" in profundidad:
                         qs = DB_CONOCIMIENTO.get(tec, {}).get("preguntas", [])
@@ -1060,29 +1074,50 @@ else:
                     {ctx[:60000]} 
                     {contexto_web}
                     """
-                    # NOTA: Llama 3 soporta mucho contexto, pero cortamos a 60k caracteres por seguridad en la versión free.
+                    
+                    texto_generado = ""
                     
                     try:
-                        # LLAMADA A GROQ
-                        chat_completion = client.chat.completions.create(
-                            messages=[
-                                {"role": "system", "content": "Eres un oficial de inteligencia estratégica."},
-                                {"role": "user", "content": prompt}
-                            ],
-                            model=MODELO_ACTUAL,
-                            temperature=temp,
-                            max_tokens=7000, # Llama permite respuestas largas
-                        )
+                        # === 🧠 INTERRUPTOR DE MOTORES ===
+                        if "Google Gemini" in PROVEEDOR:
+                             # Lógica Gemini
+                             config_generacion = genai.types.GenerationConfig(temperature=temp, max_output_tokens=8192)
+                             res = model_gemini.generate_content(prompt, generation_config=config_generacion)
+                             texto_generado = res.text
                         
-                        respuesta = chat_completion.choices[0].message.content
-                        informe_final += f"\n\n## 📌 {tec}\n{respuesta}\n\n---\n"
+                        elif "DeepSeek" in PROVEEDOR:
+                             # Lógica OpenRouter (DeepSeek R1)
+                             if not api_key_or:
+                                 st.error("⚠️ Falta API Key de OpenRouter")
+                                 break
+                             
+                             client = OpenAI(
+                                 base_url="https://openrouter.ai/api/v1",
+                                 api_key=api_key_or,
+                             )
+                             
+                             completion = client.chat.completions.create(
+                                extra_headers={
+                                    "HTTP-Referer": "https://stratintel.app",
+                                    "X-Title": "StratIntel",
+                                },
+                                model="deepseek/deepseek-r1:free", # MODELO GRATUITO
+                                messages=[
+                                    {"role": "system", "content": "Eres un oficial de inteligencia estratégica y experto en relaciones internacionales."},
+                                    {"role": "user", "content": prompt}
+                                ]
+                             )
+                             texto_generado = completion.choices[0].message.content
+
+                        # Agregar firma y contenido
+                        firma_sistema = f"\n\n> *Análisis generado vía StratIntel SOLUTIONS OS ({PROVEEDOR}) | Metodología: {tec}*"
+                        informe_final += f"\n\n## 📌 {tec}\n{texto_generado}{firma_sistema}\n\n---\n"
                         
                     except Exception as e:
                         st.error(f"Error en {tec}: {e}")
                         break
 
                     progreso.progress((i + 1) / len(tecnicas_seleccionadas))
-                    # Groq es tan rápido que no necesitamos time.sleep(), pero dejamos 0.5s por elegancia visual
                     time.sleep(0.5) 
 
                 # 6. GUARDADO
@@ -1092,7 +1127,7 @@ else:
                 st.rerun()
 
             except Exception as e: st.error(f"Error Fatal: {e}")
-
+                
 # ==========================================================
 # 🏁 BLOQUE PERSISTENTE (VISUALIZACIÓN Y DESCARGAS)
 # ==========================================================
@@ -1153,4 +1188,5 @@ if 'res' in st.session_state and st.session_state['res']:
     try: 
         c2.download_button("Descargar PDF", bytes(crear_pdf(st.session_state['res'], st.session_state.get('tecnicas_usadas','Varios'), st.session_state['origen_dato'])), "Reporte.pdf", use_container_width=True)
     except: pass
+
 
