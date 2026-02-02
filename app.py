@@ -1044,8 +1044,9 @@ else:
 
                     # BUCLE PRINCIPAL
                     for i, tec in enumerate(tecnicas_seleccionadas):
+                        st.caption(f"Analizando: {tec}...")
                         
-                        # Lógica de Prompt
+                        # Lógica de Prompt (Igual que siempre)
                         instruccion = "Análisis Estratégico Ejecutivo."
                         if "Táctico" in profundidad:
                             qs = DB_CONOCIMIENTO.get(tec, {}).get("preguntas", [])
@@ -1055,78 +1056,70 @@ else:
                             if qs: instruccion = "Responde SOLO:\n" + "\n".join([f"- {p}" for p in qs])
 
                         prompt = f"""
-                        ACTÚA COMO: Analista de Inteligencia Estratégica y Experto en Relaciones Internacionales. METODOLOGÍA: {tec}. PIR: {pir}
+                        ACTÚA COMO: Analista de Inteligencia. METODOLOGÍA: {tec}. PIR: {pir}
                         DIRECTRICES: Formato académico, BLUF, citar fuentes.
                         {instruccion}
                         CONTEXTO: {ctx[:60000]} {contexto_web}
                         """
 
                         texto_gen = ""
+                        
+                        # === INICIO DEL BLOQUE BLINDADO ===
                         try:
+                            # OPCIÓN A: GOOGLE
                             if "Google" in PROVEEDOR:
                                 model = genai.GenerativeModel("gemini-2.5-flash")
                                 res = model.generate_content(prompt)
                                 texto_gen = res.text
-                            # === OPCIÓN B: OPENROUTER (BLINDADO) ===
+                            
+                            # OPCIÓN B: OPENROUTER (SOLICITUD MANUAL)
                             else:
-                                # 1. INTENTO DE CARGA (Secrets vs Manual)
-                                # Intentamos leer el secreto de nuevo aquí mismo para asegurar
+                                # 1. INTENTO DE CARGA
                                 clave_final = st.secrets.get("OPENROUTER_API_KEY", "").strip()
+                                if not clave_final: clave_final = api_key_final # Usar la del input si secrets falla
                                 
-                                # Si viene vacía de los secrets, usamos la que hayas puesto en el sidebar
-                                if not clave_final:
-                                    clave_final = api_key_final
-                                
-                                # 2. VALIDACIÓN VISUAL (CHIVATO)
+                                # 2. CHIVATO (DEBUG)
                                 if not clave_final or len(clave_final) < 10:
-                                    st.error(f"❌ ERROR CRÍTICO: La clave está llegando vacía o incompleta.")
-                                    # Fallback de emergencia: Pídela aquí mismo si todo falló
-                                    clave_final = st.text_input(f"🆘 Pega la key aquí para salvar la misión {tec}:", type="password", key=f"emergency_key_{i}")
-                                    if not clave_final: st.stop()
+                                    st.error(f"❌ La clave está vacía. Revisa Secrets.")
+                                    texto_gen = "Error: Clave vacía."
                                 else:
-                                    # Esto te confirmará que SÍ la leyó
-                                    st.caption(f"🔑 Autorizando con clave: {clave_final[:5]}...*****")
-
-                                # 3. PETICIÓN HTTP DIRECTA
-                                headers = {
-                                    "Authorization": f"Bearer {clave_final}",
-                                    "Content-Type": "application/json",
-                                    "HTTP-Referer": "https://stratintel.app",
-                                    "X-Title": "StratIntel OS"
-                                }
-                                
-                                data = {
-                                    "model": "deepseek/deepseek-r1:free", 
-                                    "messages": [{"role": "user", "content": prompt}]
-                                }
-                                
-                                response = requests.post(
-                                    "https://openrouter.ai/api/v1/chat/completions",
-                                    headers=headers,
-                                    json=data,
-                                    timeout=120
-                                )
-                                
-                                if response.status_code == 200:
-                                    respuesta_json = response.json()
-                                    # A veces la respuesta viene anidada diferente, prevenimos error
-                                    if 'choices' in respuesta_json:
-                                        texto_gen = respuesta_json['choices'][0]['message']['content']
+                                    st.caption(f"🔑 Autorizando con: {clave_final[:5]}...*****")
+                                    
+                                    # 3. ENVÍO
+                                    headers = {
+                                        "Authorization": f"Bearer {clave_final}",
+                                        "Content-Type": "application/json",
+                                        "HTTP-Referer": "https://stratintel.app",
+                                        "X-Title": "StratIntel OS"
+                                    }
+                                    data = {
+                                        "model": "deepseek/deepseek-r1:free", 
+                                        "messages": [{"role": "user", "content": prompt}]
+                                    }
+                                    response = requests.post(
+                                        "https://openrouter.ai/api/v1/chat/completions",
+                                        headers=headers, 
+                                        json=data, 
+                                        timeout=120
+                                    )
+                                    
+                                    if response.status_code == 200:
+                                        try:
+                                            texto_gen = response.json()['choices'][0]['message']['content']
+                                        except:
+                                            texto_gen = str(response.json())
                                     else:
-                                        texto_gen = f"Respuesta inesperada: {respuesta_json}"
-                                else:
-                                    texto_gen = f"⚠️ Error del Servidor ({response.status_code}): {response.text}"
+                                        texto_gen = f"⚠️ Error {response.status_code}: {response.text}"
 
+                        except Exception as e:
+                            texto_gen = f"Error generando: {str(e)}"
+                        # === FIN DEL BLOQUE BLINDADO (AQUÍ ESTABA EL ERROR ANTES) ===
+
+                        # Agregar firma y contenido
                         firma = f"\n\n> *Análisis generado vía StratIntel Solutions OS ({PROVEEDOR}) | Metodología: {tec}*"
                         informe_final += f"\n\n## 📌 {tec}\n{texto_gen}{firma}\n\n---\n"
+                        
                         progreso.progress((i+1)/len(tecnicas_seleccionadas))
-                    
-                    st.session_state['res'] = informe_final
-                    st.session_state['tecnicas_usadas'] = ", ".join(tecnicas_seleccionadas)
-                    st.success("✅ Misión Cumplida")
-                    st.rerun()
-
-                except Exception as e: st.error(f"Error Fatal: {e}")
 
 # ==========================================================
 # 🏁 VISUALIZACIÓN Y DESCARGAS
@@ -1156,6 +1149,7 @@ if 'res' in st.session_state and st.session_state['res']:
     try:
         c2.download_button("Descargar PDF", bytes(crear_pdf(st.session_state['res'], st.session_state.get('tecnicas_usadas',''), st.session_state['origen_dato'])), "Reporte.pdf", use_container_width=True)
     except: pass
+
 
 
 
