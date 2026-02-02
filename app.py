@@ -12,24 +12,26 @@ import datetime
 from langchain_community.tools import DuckDuckGoSearchRun
 import graphviz
 
-# --- CONFIGURACIÓN DE PÁGINA ---
-st.set_page_config(page_title="StratIntel Solutions (Groq Edition)", page_icon="♟️", layout="wide")
+st.set_page_config(page_title="StratIntel Solutions OS", page_icon="♟️", layout="wide")
 
 # ==========================================
-# 🔐 SISTEMA DE LOGIN
+# 🔐 SISTEMA DE LOGIN (Compatible con tu código)
 # ==========================================
 def check_password():
+    """Retorna True si el usuario/contraseña son correctos."""
     def password_entered():
+        # Verifica si el usuario existe en la sección [passwords] y si la clave coincide
         if st.session_state["username"] in st.secrets["passwords"] and \
            st.session_state["password"] == st.secrets["passwords"][st.session_state["username"]]:
             st.session_state["password_correct"] = True
-            del st.session_state["password"]
+            del st.session_state["password"]  # Borra la clave de memoria por seguridad
         else:
             st.session_state["password_correct"] = False
 
     if st.session_state.get("password_correct", False):
         return True
 
+    # Interfaz de Login
     st.markdown("## ♟️ StratIntel Solutions: Acceso Restringido")
     st.text_input("Usuario", key="username")
     st.text_input("Contraseña", type="password", on_change=password_entered, key="password")
@@ -39,17 +41,21 @@ def check_password():
     return False
 
 if not check_password():
-    st.stop()
+    st.stop() # Se detiene aquí si no hay login
 
 # ==========================================
-# ⚙️ CONFIGURACIÓN Y MODELO (GROQ)
+# ⚙️ CARGA DE CLAVES API (Desde secrets.toml)
 # ==========================================
-# Si tienes la clave en secrets, úsala. Si no, déjala vacía para pedirla en el sidebar.
-API_KEY_FIJA = "" 
-if "GROQ_API_KEY" in st.secrets:
-    API_KEY_FIJA = st.secrets["GROQ_API_KEY"]
+# Cargamos las claves en session_state para usarlas en el resto de la app
 
-MODELO_ACTUAL = "llama3-70b-8192"  # El "GPT-4 Killer" de código abierto
+if "GOOGLE_API_KEY" in st.secrets:
+    st.session_state['api_key'] = st.secrets["GOOGLE_API_KEY"] # Para Gemini
+else:
+    st.warning("⚠️ Falta GOOGLE_API_KEY en secrets.toml")
+
+# Opcional: Si quieres dejar fija la de OpenRouter también
+if "OPENROUTER_API_KEY" in st.secrets:
+    st.session_state['api_key_or'] = st.secrets["OPENROUTER_API_KEY"]
 
 # ==========================================
 # 🧠 BASE DE DATOS MAESTRA (GRAND UNIFIED STRATEGY)
@@ -1188,5 +1194,6 @@ if 'res' in st.session_state and st.session_state['res']:
     try: 
         c2.download_button("Descargar PDF", bytes(crear_pdf(st.session_state['res'], st.session_state.get('tecnicas_usadas','Varios'), st.session_state['origen_dato'])), "Reporte.pdf", use_container_width=True)
     except: pass
+
 
 
