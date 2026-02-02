@@ -1067,14 +1067,41 @@ else:
                                 res = model.generate_content(prompt)
                                 texto_gen = res.text
                             else:
-                                client = OpenAI(base_url="https://openrouter.ai/api/v1", api_key=api_key_final)
-                                completion = client.chat.completions.create(
-                                    model="deepseek/deepseek-r1:free",
-                                    messages=[{"role": "user", "content": prompt}]
+                                # 1. Verificación manual de la llave
+                                if not api_key_final or len(api_key_final) < 10:
+                                    raise ValueError("La API Key de OpenRouter parece vacía o inválida.")
+
+                                # 2. Petición HTTP Directa (Sin librería OpenAI)
+                                headers = {
+                                    "Authorization": f"Bearer {api_key_final}",
+                                    "Content-Type": "application/json",
+                                    "HTTP-Referer": "https://stratintel.app", # Requerido por OpenRouter
+                                    "X-Title": "StratIntel OS"
+                                }
+                                
+                                data = {
+                                    "model": "deepseek/deepseek-r1:free", # El modelo gratis
+                                    "messages": [{"role": "user", "content": prompt}]
+                                }
+                                
+                                # Hacemos el envío manual
+                                response = requests.post(
+                                    "https://openrouter.ai/api/v1/chat/completions",
+                                    headers=headers,
+                                    json=data,
+                                    timeout=120 # Le damos 2 minutos porque DeepSeek piensa mucho
                                 )
-                                texto_gen = completion.choices[0].message.content
+                                
+                                # 3. Procesamos la respuesta manual
+                                if response.status_code == 200:
+                                    respuesta_json = response.json()
+                                    texto_gen = respuesta_json['choices'][0]['message']['content']
+                                else:
+                                    # Si falla, mostramos el error exacto que devuelve el servidor
+                                    texto_gen = f"Error {response.status_code}: {response.text}"
+                                
                         except Exception as e:
-                            texto_gen = f"Error generando: {e}"
+                            texto_gen = f"Error generando: {str(e)}"
 
                         firma = f"\n\n> *Análisis generado vía StratIntel Solutions OS ({PROVEEDOR}) | Metodología: {tec}*"
                         informe_final += f"\n\n## 📌 {tec}\n{texto_gen}{firma}\n\n---\n"
@@ -1115,6 +1142,7 @@ if 'res' in st.session_state and st.session_state['res']:
     try:
         c2.download_button("Descargar PDF", bytes(crear_pdf(st.session_state['res'], st.session_state.get('tecnicas_usadas',''), st.session_state['origen_dato'])), "Reporte.pdf", use_container_width=True)
     except: pass
+
 
 
 
