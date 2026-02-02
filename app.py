@@ -13,6 +13,14 @@ from langchain_community.tools import DuckDuckGoSearchRun
 import graphviz
 
 st.set_page_config(page_title="StratIntel Solutions OS", page_icon="♟️", layout="wide")
+# 👇👇 PEGA ESTO AQUÍ (INICIALIZACIÓN DE VARIABLES) 👇👇
+API_KEY_FIJA = ""
+MODELO_ACTUAL = "Híbrido (Gemini/DeepSeek)"
+
+# Intentamos cargar la clave si existe en los secretos
+if "GOOGLE_API_KEY" in st.secrets:
+    API_KEY_FIJA = st.secrets["GOOGLE_API_KEY"]
+# 👆👆 FIN DEL BLOQUE DE INICIALIZACIÓN 👆👆
 
 # ==========================================
 # 🔐 SISTEMA DE LOGIN (Compatible con tu código)
@@ -1194,6 +1202,7 @@ if 'res' in st.session_state and st.session_state['res']:
     try: 
         c2.download_button("Descargar PDF", bytes(crear_pdf(st.session_state['res'], st.session_state.get('tecnicas_usadas','Varios'), st.session_state['origen_dato'])), "Reporte.pdf", use_container_width=True)
     except: pass
+
 
 
 
