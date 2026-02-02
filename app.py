@@ -1056,7 +1056,7 @@ else:
                             if qs: instruccion = "Responde SOLO:\n" + "\n".join([f"- {p}" for p in qs])
 
                         prompt = f"""
-                        ACTÚA COMO: Analista de Inteligencia. METODOLOGÍA: {tec}. PIR: {pir}
+                        ACTÚA COMO: Analista de Inteligencia y Experto en Relaciones Internacionales. METODOLOGÍA: {tec}. PIR: {pir}
                         DIRECTRICES: Formato académico, BLUF, citar fuentes.
                         {instruccion}
                         CONTEXTO: {ctx[:60000]} {contexto_web}
@@ -1149,6 +1149,7 @@ if 'res' in st.session_state and st.session_state['res']:
     try:
         c2.download_button("Descargar PDF", bytes(crear_pdf(st.session_state['res'], st.session_state.get('tecnicas_usadas',''), st.session_state['origen_dato'])), "Reporte.pdf", use_container_width=True)
     except: pass
+
 
 
 
