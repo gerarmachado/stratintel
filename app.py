@@ -961,6 +961,7 @@ if st.session_state['texto_analisis']:
 # 🚀 EJECUCIÓN HÍBRIDA (EL CEREBRO)
 # ==========================================
 st.header("Generación de Informe")
+st.write(f"DEBUG: Clave OpenRouter detectada: {len(router_key_auto)} caracteres")
 
 if not st.session_state['texto_analisis']:
     st.warning("⚠️ Carga datos para comenzar.")
@@ -1142,6 +1143,7 @@ if 'res' in st.session_state and st.session_state['res']:
     try:
         c2.download_button("Descargar PDF", bytes(crear_pdf(st.session_state['res'], st.session_state.get('tecnicas_usadas',''), st.session_state['origen_dato'])), "Reporte.pdf", use_container_width=True)
     except: pass
+
 
 
 
